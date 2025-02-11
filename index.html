@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hello World!</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="chatbot-window">
+        <div class="chatbot-content">
+            <!-- Your chatbot content goes here -->
+
+            <!-- Add a Bootstrap-styled form -->
+            <form id="api-form" class="needs-validation" novalidate>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="api-url" name="api-url" required>
+                    <div class="invalid-feedback">
+                        Please provide a valid API URL.
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Request</button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,25 @@
+body {
+    border-radius: 10px;
+    overflow: hidden;
+}
+#login-form button.btn.btn-primary {
+    background: #07639d;
+    border: none;
+    width: 100%;
+}
+.card-header.text-center {
+    background: #07639d;
+    color: #fff;
+    padding: 10px;
+}
+.footer-login {
+    font-size: 15px;
+    position: relative;
+    bottom: 6px;
+    background: linear-gradient(45deg, #00abc5, #dfcf18);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+.card-body {
+    padding: 10px;
+}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZerofAI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.0/css/all.min.css">
+    <link rel="stylesheet" href="../../node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="../../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <div class="user-info">
+                <!-- <img class="user-circle" src="../../images/image.png" /> -->
+                <span id="username"></span>
+            </div>
+            <div class="menuDiv">
+                <button class="btn btn-primary menuBtn" id="mainMenu">Menu</button>
+            </div>
+        </div>
+        <div id="notification" class="hidden">
+            <p id="message"></p>
+            <button id="close-button" onClick="closeNotification()">Close</button>
+            <button id="restart-button" onClick="restartApp()" class="hidden">Restart</button>
+        </div>
+        <div class="chat-container">
+            <div class="chat-box container" id="chatbox">
+                <ul id= "chatbot-ul"></ul>
+            </div>
+    
+            <div class="input-container row">
+                <div class="col-10">
+                    <input type="text" class="message-input" id="userMessageInput" placeholder="Type your message...">
+                </div>
+                <div class="col-2">
+                    <button class="send-button btn btn-primary" id="sendMessage">Send</button>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <center>
+                <img class="footer-image" src="../../images/image.png" /> <span>Led by <b>AI Managed Services</b></span>
+            </center>
+        </div>
+    </div>
+</body>
+<script src="renderer.js"></script>
+
+</html>
