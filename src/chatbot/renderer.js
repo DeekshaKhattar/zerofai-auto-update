@@ -32,28 +32,31 @@ const notification = document.getElementById('notification');
 const message = document.getElementById('message');
 const restartButton = document.getElementById('restart-button');
 
-ipcRenderer.on('update_available', (event, version) => {
+ipcRenderer.on('update_available', ( version) => {
     console.log('update_available', version);
     message.innerText = `New version ${version} available. Downloading...`;
     notification.classList.remove('hidden');
 });
 
-ipcRenderer.on('update_downloaded', (event, version) => {
+ipcRenderer.on('update_downloaded', ( version) => {
     console.log('update_downloaded', version);
     message.innerText = `Version ${version} downloaded. Restart to install update.`;
     restartButton.classList.remove('hidden');
     notification.classList.remove('hidden');
 });
 
-ipcRenderer.on('update_error', (event, error) => {
+ipcRenderer.on('update_error', ( error) => {
     console.log('update_error', error);
     const errorMessage = error || 'Update check failed. Please try again later.';
     message.innerText = `Update status: ${errorMessage}`;
     notification.classList.remove('hidden');
 });
 
-ipcRenderer.on('update_status', (event, message) => {
+ipcRenderer.on('update_status', ( message) => {
     console.log('update_status', message);
+    if (!message) {
+        console.error("update_status is undefined!");
+    }
     notification.innerText = message;
     notification.classList.remove('hidden');
     setTimeout(() => notification.classList.add('hidden'), 3000);
@@ -107,6 +110,14 @@ ipcRenderer.on('send-json', (data) => {
       mainMenu.style.background = jsonData.menu_button_color;
     }
   });
+
+  ipcRenderer.on('test_event', (message) => {
+    console.log("Received test_event:", message);
+
+    // Send a response back to main process
+    window.ipcRenderer.send('test_event_response', "Hello from renderer.js!");
+});
+
 
 document.addEventListener('DOMContentLoaded', () => {
     // Bot Starting Message

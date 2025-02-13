@@ -1,6 +1,6 @@
 {
   "name": "ZerofAI",
-  "version": "2.0.1",
+  "version": "3.0.4",
   "description": "AI chatbot for commercial use only.",
   "main": "main.js",
   "scripts": {
@@ -20,14 +20,17 @@
   "build": {
     "appId": "ZerofAI",
     "productName": "ZerofAI",
-    "buildNumber": "2.0.1",
-    "buildVersion": "2.0.1",
+    "buildNumber": "3.0.4",
+    "buildVersion": "3.0.4",
     "win": {
       "icon": "images/chatbot.png",
       "legalTrademarks": "(c) 2023 www.tcpl.com",
       "publisherName": "Team Computers Pvt.Ltd.",
       "target": "nsis",
-      "requestedExecutionLevel": "requireAdministrator"
+      "requestedExecutionLevel": "requireAdministrator",
+      "certificateFile": "certs/zerofai-dev.pfx",
+      "certificatePassword": "Diksha@123",
+      "verifyUpdateCodeSignature": false
     },
     "directories": {
       "output": "dist"
@@ -46,7 +49,7 @@
       },
       {
         "from": "build/post-update.bat",
-        "to": "resources"
+        "to": "."
       }
     ],
     "publish": {
@@ -73,7 +76,6 @@
     "electron": "^26.2.2",
     "electron-builder": "^24.13.3",
     "electron-debug": "^4.1.0",
-    "electron-updater": "^6.3.9",
     "nodemon": "^2.0.19"
   },
   "dependencies": {
@@ -88,9 +90,10 @@
     "electron-squirrel-startup": "^1.0.1",
     "electron-sudo": "^4.0.12",
     "electron-tray": "^0.1.1",
+    "electron-updater": "^6.3.9",
     "ldapjs": "^3.0.7",
     "moment": "^2.30.1",
-    "node-cron": "^3.0.3",
+    "node-cron": "^3.0.4",
     "node-schedule": "^2.1.1",
     "node-windows": "^1.0.0-beta.8",
     "qs": "^6.11.2",

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain, Menu, net, Tray } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, Menu, net, Tray, shell } = require('electron');
 const { autoUpdater } = require("electron-updater");
 const path = require('path');
 const socket = require('net');
@@ -10,24 +10,28 @@ const packageJson = require('./package.json');
 const ldap = require('ldapjs');
 const AutoLaunch = require('auto-launch');
 const log = require('electron-log');
-const sudo = require('sudo-prompt');
+// const sudo = require('sudo-prompt');
+const { exec } = require('child_process');
+
 const { dialog } = require('electron');
 require('dotenv').config();
 // Auto-update configuration
 const updateMarkerFile = path.join(app.getPath("userData"), "update-in-progress");
-const postUpdateScript = "C:\\Program Files\\ZerofAI\\resources\\post-update.bat"; // Update path
+const postUpdateScript = "C:\\Program Files\\ZerofAI\\resources\\post-update.bat";
 let jsonData = null;
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'debug';
+const logPath = path.join(app.getPath('userData'), 'update-log.txt');
+const logStream = fs.createWriteStream(logPath, { flags: 'a' });
 const appLauncher = new AutoLaunch({
     name: 'ZerofAI',
     path: app.getPath('exe'), // Path to the executable
 });
 // const log = require('electron-log');
-let solutionRun= null;
+let solutionRun = null;
 appLauncher.isEnabled().then((isEnabled) => {
     if (!isEnabled) {
-      appLauncher.enable();
+        appLauncher.enable();
     }
 }).catch((err) => {
     log.error(err);
@@ -51,7 +55,7 @@ autoUpdater.autoInstallOnAppQuit = true;
 
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'debug';
-
+autoUpdater.forceDevUpdateConfig = true;
 const dataToEncrypt = "RmxSWnJJMGxBR3JOVWJrbmt4a3NzRlN3SmhRN1N0MlRhMUNld";
 const key = '.Gq0JGP`l&W`t+iLy4Td%-6v6%]tw*bnvn[-`&2kz5Be~2SnI'
 function xorEncrypt(data, key) {
@@ -61,19 +65,37 @@ function xorEncrypt(data, key) {
     }
     return btoa(encrypted);
 }
+function logToFile(message) {
+    logStream.write(`${new Date().toISOString()} - ${message}\n`);
+}
 
 function getMacAddress() {
     const networkInterfaces = os.networkInterfaces();
     const macAddresses = [];
     for (const interfaceName in networkInterfaces) {
         if (networkInterfaces.hasOwnProperty(interfaceName)) {
-        const addresses = networkInterfaces[interfaceName];
-        const macAddress = addresses[0]?.mac;
+            const addresses = networkInterfaces[interfaceName];
+            const macAddress = addresses[0]?.mac;
 
-        macAddresses.push(macAddress || 'MAC address not available');
+            macAddresses.push(macAddress || 'MAC address not available');
         }
     }
     return macAddresses
+}
+
+function runBatchFile() {
+    const batchFilePath = 'C:\\Program Files\\ZerofAI\\resources\\post-update.bat'; // Replace with the actual path to your .bat file
+    exec(batchFilePath, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error executing batch file: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`Batch file stderr: ${stderr}`);
+            return;
+        }
+        console.log(`Batch file output: ${stdout}`);
+    });
 }
 
 async function createWindow() {
@@ -182,16 +204,6 @@ async function createWindow() {
     });
 }
 
-setInterval(() => {
-    autoUpdater.checkForUpdates()
-        .then(result => {
-            log.info('Update check result:', result);
-        })
-        .catch(err => {
-            log.error('Update check failed:', err);
-            mainWindow.webContents.send('update_error', err.message);
-        });
-}, 60000);
 autoUpdater.on('update-available', (info) => {
     mainWindow.webContents.send('update_available', info.version);
     fs.writeFileSync(updateMarkerFile, "update");
@@ -199,11 +211,29 @@ autoUpdater.on('update-available', (info) => {
 });
 
 autoUpdater.on('update-not-available', () => {
-    mainWindow.webContents.send('update_status', `No updates available. Current version ${packageJson.version}`);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update_status', `No updates available. Current version ${packageJson.version}`);
+    }
 });
 
 autoUpdater.on('update-downloaded', (info) => {
-    mainWindow.webContents.send('update_downloaded', info.version);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update_downloaded', info.version);
+        const dialogOpts = {
+            type: 'info',
+            buttons: ['Restart now', 'Later'],
+            title: 'Application Update',
+            message: "A new version has been downloaded. Restart to complete the update.",
+            detail: `Current version: ${packageJson.version}`
+        };
+
+        dialog.showMessageBox(dialogOpts).then((returnValue) => {
+            if (returnValue.response === 0) {
+                app.exit(0);
+                autoUpdater.quitAndInstall(true, true);
+            }
+        });
+    }
 });
 
 autoUpdater.on('error', (err) => {
@@ -241,32 +271,75 @@ app.whenReady().then(() => {
     createWindow()
     const mainMenu = Menu.buildFromTemplate([])
     Menu.setApplicationMenu(mainMenu);
-    if (fs.existsSync(updateMarkerFile)) {
-        const options = {
-            name: 'ZerofAI Updater'
-        };
-        console.log('postUpdateScript', postUpdateScript);
-        
-        sudo.exec(`"${postUpdateScript}"`, options,
-            (error, stdout, stderr) => {
-                if (error) {
-                    log.error('Post-update error:', error);
-                    mainWindow.webContents.send('update_error', `Post-update failed: ${error.message}`);
-                    return;
-                }
-                
-                if (fs.existsSync(updateMarkerFile)) {
-                    fs.unlinkSync(updateMarkerFile);
-                }
-            }
-        );
-    }
-    
-    // app.on('activate', () => {
-    //     if (BrowserWindow.getAllWindows().length === 0) {
-    //         createWindow()
-    //     }
-    // })
+    logToFile('App started after update');
+    log.info('App started after update...');
+    log.info('Post Update Script:', postUpdateScript)
+    log.info('postUpdateScript', postUpdateScript);
+    log.info('Update Marker File:', fs.existsSync(updateMarkerFile))
+    log.info('Post Update Script:', fs.existsSync(postUpdateScript))
+    setTimeout(() => {
+        logToFile('Running post-update script...');
+        logToFile(`Update Marker Exists: ${fs.existsSync(updateMarkerFile)}`);
+        logToFile(`Post Update Script Exists: ${fs.existsSync(postUpdateScript)}`);
+
+        console.log('Update Marker File:', fs.existsSync(updateMarkerFile));
+        console.log('Post Update Script:', fs.existsSync(postUpdateScript));
+
+        if (fs.existsSync(updateMarkerFile)) {
+            log.info('Update marker file exists. Running post-update script...');
+            const options = {
+                name: 'ZerofAI Updater'
+            };
+            log.info('Attempting to execute:', `"${postUpdateScript}"`);
+            log.info('Script exists:', fs.existsSync(postUpdateScript));
+
+            const batchFilePath = 'C:\\Program Files\\ZerofAI\\resources\\post-update.bat';
+            shell.openPath(batchFilePath)
+                .then((errorMessage) => {
+                    if (errorMessage) {
+                        log.info(`Error opening batch file: ${errorMessage}`);
+                        console.error(`Error opening batch file: ${errorMessage}`);
+                    } else {
+                        console.log('Batch file executed successfully.');
+                    }
+                })
+                .catch((error) => {
+                    log.info(`Error opening batch file: ${error.message}`);
+                    console.error(`Failed to execute batch file: ${error.message}`);
+                });
+            // const validEnv = Object.fromEntries(
+            //     Object.entries(process.env).filter(([key]) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key))
+            // );
+
+            // sudo.exec(`"${postUpdateScript}"`, {
+            //     name: 'ZerofAI Updater',
+            //     windowsHide: false,
+            //     env: validEnv
+            // }, (error, stdout, stderr) => {
+            //     if (error) {
+            //         console.error('Error:', error);
+            //         log.error('Error:', error);
+            //         log.error('Elevation Error:', error.message);
+            //         return;
+            //     }
+            //     console.log('stdout:', stdout);
+            //     console.error('stderr:', stderr);
+            //     log.info('stdout:', stdout);
+            //     log.error('stderr:', stderr);
+
+            //     // Delete marker file regardless of success
+            //     if (fs.existsSync(updateMarkerFile)) {
+            //         fs.unlinkSync(updateMarkerFile);
+            //         log.info('deleting:', updateMarkerFile);
+            //     }
+            // });
+
+        }
+    }, 9000);
+
+
+    autoUpdater.checkForUpdates()
+
 })
 
 app.on('window-all-closed', () => {
@@ -274,6 +347,10 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 })
+
+ipcMain.on('test_event_response', (event, message) => {
+    console.log("Received from renderer:", message);
+});
 
 ipcMain.on('send:message', function (event, data) {
     if (data.message == 'reportnewincident') {
@@ -285,10 +362,10 @@ ipcMain.on('send:message', function (event, data) {
             method: 'post',
             maxBodyLength: Infinity,
             url: `${rasaUrl}/webhooks/rest/webhook`,
-            headers: { 
-                'Content-Type': 'application/json', 
+            headers: {
+                'Content-Type': 'application/json',
             },
-            data : body
+            data: body
         });
         request.on('response', (response) => {
             if (response.statusCode === 200) {
@@ -346,11 +423,11 @@ ipcMain.on('get:solution', function (event, data) {
         var loaderText = '';
         if (matchingSolution?.loaderText) {
             loaderText = matchingSolution?.loaderText;
-        } else{
-            if(responseData.type=='exe'){
-                 loaderText = `Please wait while we are installing <b>${responseData.name}</b> for you..!!`;
-            }else{
-                 loaderText = `Please wait while we are fixing <b>${responseData.name}</b> for you..!!`;
+        } else {
+            if (responseData.type == 'exe') {
+                loaderText = `Please wait while we are installing <b>${responseData.name}</b> for you..!!`;
+            } else {
+                loaderText = `Please wait while we are fixing <b>${responseData.name}</b> for you..!!`;
             }
         }
 
@@ -378,11 +455,11 @@ ipcMain.on('get:solution', function (event, data) {
                 solutionRun = null;
                 mainWindow.webContents.send('message:success', responseData);
             });
-        }else if (responseData.type === 'exe') {
+        } else if (responseData.type === 'exe') {
             const url = responseData.exe_file;
             const fileName = path.basename(url);
             const destination = path.join(app.getPath('downloads'), fileName);
-        
+
             downloadFile(url, destination)
                 .then(() => {
                     setTimeout(() => {
@@ -390,22 +467,22 @@ ipcMain.on('get:solution', function (event, data) {
                         const fileExtension = path.extname(destination).toLowerCase();
                         const client = new socket.Socket();
                         let command;
-        
+
                         if (fileExtension === '.msi') {
                             command = destination + ' -ms';
                         } else if (fileExtension === '.exe') {
                             command = `run_exe_command ${destination}`;
                         }
-        
+
                         client.connect(12345, '127.0.0.1', () => {
                             log.info('Connected');
                             client.write(command);
                         });
-        
+
                         client.on('data', (data) => {
                             log.info(`Received: ${data}`);
                         });
-        
+
                         client.on('close', () => {
                             if (fileExtension === '.msi' || fileExtension === '.exe') {
                                 fs.unlink(destination, (err) => {
@@ -416,13 +493,11 @@ ipcMain.on('get:solution', function (event, data) {
                                     }
                                 });
                             }
-        
+
                             mainWindow.webContents.send('solution:success');
 
                             const matchingSolution = jsonData['solutions'].find(sol => sol.name.toLowerCase() === solutionRun.name.toLowerCase());
                             const successInstallationText = matchingSolution ? matchingSolution.afterFixedText : `I have fixed your <b>${solutionRun.solution_name}</b>..!! 😃. Was it helpful for you?`;
-
-                    
         
                             const responseData = [{
                                 'text': successInstallationText ? successInstallationText : `I have installed <b>${solutionRun.solution_name}</b>..!! 😃`,
@@ -541,7 +616,7 @@ console.log('Postman Ready Payload:', rawPayload);
         },
         data: payload
     };
-  
+
     axios.request(config)
         .then((response) => {
             console.log('res', response);
@@ -567,7 +642,7 @@ ipcMain.on('create:solutionRunEntry', function (event, data) {
             'Authorization': xorEncrypt(dataToEncrypt, key),
             'Content-Type': 'application/json',
         },
-        data : payload
+        data: payload
     };
     axios.request(config)
     .then((response) => {

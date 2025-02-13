@@ -1,0 +1,6 @@
+provider: github
+owner: DeekshaKhattar  # Replace with your GitHub username or organization
+repo: zerofai-auto-update        # Replace with your actual repository name
+releaseType: release
+private: false
+updaterCacheDirName: zerofai-auto-update
